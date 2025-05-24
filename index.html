@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anuj's Travel Ranking</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9f9fb;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background-color: #4a90e2;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .controls {
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .filter-group {
+      margin-bottom: 15px;
+    }
+
+    select, button {
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin: 5px;
+    }
+
+    button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #357abd;
+    }
+
+    .tier-title {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      margin: 40px 0 10px;
+      color: #4a4a4a;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      max-width: 600px;
+      margin: 0 auto 30px auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease-in-out;
+    }
+
+    li {
+      padding: 12px 16px;
+      margin: 4px 0;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: move;
+      transition: background 0.2s ease;
+    }
+
+    li:hover {
+      background-color: #f0f8ff;
+    }
+
+    .dragging {
+      opacity: 0.5;
+    }
+
+    .rank-number {
+      font-weight: bold;
+      color: #4a90e2;
+      width: 40px;
+      flex-shrink: 0;
+    }
+
+    .country-name {
+      flex-grow: 1;
+      padding-left: 10px;
+    }
+
+    .flag {
+      margin-left: 10px;
+      font-size: 1.2em;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 600px) {
+      li {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .rank-number {
+        margin-bottom: 5px;
+      }
+      .flag {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Drag to Reorder Travel Rankings</h1>
+  </header>
+
+  <div class="controls">
+    <div class="filter-group">
+      <label for="regionFilter">Filter by region:</label>
+      <select id="regionFilter">
+        <option value="all">All</option>
+        <option value="Asia">Asia</option>
+        <option value="Europe">Europe</option>
+        <option value="Africa">Africa</option>
+        <option value="Americas">Americas</option>
+        <option value="Oceania">Oceania</option>
+        <option value="Middle East">Middle East</option>
+      </select>
+    </div>
+    <button onclick="exportOrder()">Export Current Order</button>
+  </div>
+
+  <div class="tier-title">Absolute Favorites</div>
+  <ul id="tier1"></ul>
+
+  <div class="tier-title">Strongly Enjoyed</div>
+  <ul id="tier2"></ul>
+
+  <div class="tier-title">Neutral</div>
+  <ul id="tier3"></ul>
+
+  <div class="tier-title">Low Preference</div>
+  <ul id="tier4"></ul>
+
+  <div class="tier-title">Least Favorites</div>
+  <ul id="tier5"></ul>
+
+  <script>
+    const countries = [
+      "Vietnam", "China", "Norway", "Peru", "Tanzania", "Italy", "Egypt", "Mexico", "Ecuador", "Bolivia", "Portugal", "Jordan", "Hong Kong", "Spain", "France",
+      "Iceland", "Chile", "Brazil", "Argentina", "Czechia", "India", "Romania", "Germany", "Thailand", "Turkey", "Austria", "Hungary", "Slovakia", "Poland", "UK",
+      "Australia", "Denmark", "Cambodia", "Greece", "Switzerland", "Malaysia", "Fiji", "Faroe Islands", "USA", "Vatican City", "Finland", "Cyprus", "Kenya", "Belgium", "Netherlands", "Ireland",
+      "Macau", "Taiwan", "Luxembourg", "Morocco", "Singapore", "San Marino", "Liechtenstein", "Japan", "South Korea", "United Arab Emirates (UAE)"
+    ];
+
+    const flags = {
+      "Vietnam": "🇻🇳", "China": "🇨🇳", "Norway": "🇳🇴", "Peru": "🇵🇪", "Tanzania": "🇹🇿", "Italy": "🇮🇹", "Egypt": "🇪🇬", "Mexico": "🇲🇽", "Ecuador": "🇪🇨", "Bolivia": "🇧🇴",
+      "Portugal": "🇵🇹", "Jordan": "🇯🇴", "Hong Kong": "🇭🇰", "Spain": "🇪🇸", "France": "🇫🇷", "Iceland": "🇮🇸", "Chile": "🇨🇱", "Brazil": "🇧🇷", "Argentina": "🇦🇷",
+      "Czechia": "🇨🇿", "India": "🇮🇳", "Romania": "🇷🇴", "Germany": "🇩🇪", "Thailand": "🇹🇭", "Turkey": "🇹🇷", "Austria": "🇦🇹", "Hungary": "🇭🇺", "Slovakia": "🇸🇰",
+      "Poland": "🇵🇱", "UK": "🇬🇧", "Australia": "🇦🇺", "Denmark": "🇩🇰", "Cambodia": "🇰🇭", "Greece": "🇬🇷", "Switzerland": "🇨🇭", "Malaysia": "🇲🇾", "Fiji": "🇫🇯",
+      "Faroe Islands": "🇫🇴", "USA": "🇺🇸", "Vatican City": "🇻🇦", "Finland": "🇫🇮", "Cyprus": "🇨🇾", "Kenya": "🇰🇪", "Belgium": "🇧🇪", "Netherlands": "🇳🇱",
+      "Ireland": "🇮🇪", "Macau": "🇲🇴", "Taiwan": "🇹🇼", "Luxembourg": "🇱🇺", "Morocco": "🇲🇦", "Singapore": "🇸🇬", "San Marino": "🇸🇲", "Liechtenstein": "🇱🇮",
+      "Japan": "🇯🇵", "South Korea": "🇰🇷", "United Arab Emirates (UAE)": "🇦🇪"
+    };
+
+    function renderList(containerId, items, startRank) {
+      const container = document.getElementById(containerId);
+      items.forEach((country, idx) => {
+        const li = document.createElement('li');
+        li.setAttribute('draggable', 'true');
+        li.setAttribute('data-region', '');
+        li.innerHTML = `<span class='rank-number'>${startRank + idx}.</span><span class='country-name'>${country}</span><span class='flag'>${flags[country] || ''}</span>`;
+        container.appendChild(li);
+      });
+    }
+
+    renderList('tier1', countries.slice(0, 15), 1);
+    renderList('tier2', countries.slice(15, 30), 16);
+    renderList('tier3', countries.slice(30, 45), 31);
+    renderList('tier4', countries.slice(45, 51), 46);
+    renderList('tier5', countries.slice(51), 52);
+
+    function updateRankNumbers() {
+      let rank = 1;
+      document.querySelectorAll('ul').forEach((ul) => {
+        ul.querySelectorAll('li').forEach((li) => {
+          li.querySelector('.rank-number').textContent = rank + '.';
+          rank++;
+        });
+      });
+    }
+
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function exportOrder() {
+      let result = [];
+      document.querySelectorAll('ul').forEach(ul => {
+        ul.querySelectorAll('li').forEach((li, index) => {
+          result.push((index + 1) + ". " + li.textContent.trim());
+        });
+      });
+      const blob = new Blob([result.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'travel_ranking.txt';
+      a.click();
+    }
+
+    document.querySelectorAll('ul').forEach(ul => {
+      ul.addEventListener('dragstart', e => {
+        e.target.classList.add('dragging');
+      });
+
+      ul.addEventListener('dragend', e => {
+        e.target.classList.remove('dragging');
+        updateRankNumbers();
+      });
+
+      ul.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterEl = getDragAfterElement(ul, e.clientY);
+        const draggingEl = document.querySelector('.dragging');
+        if (afterEl == null) {
+          ul.appendChild(draggingEl);
+        } else {
+          ul.insertBefore(draggingEl, afterEl);
+        }
+      });
+    });
+
+    document.getElementById('regionFilter').addEventListener('change', function() {
+      const region = this.value;
+      document.querySelectorAll('li').forEach(li => {
+        if (region === 'all' || li.dataset.region === region) {
+          li.style.display = '';
+        } else {
+          li.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
